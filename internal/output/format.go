@@ -8,8 +8,8 @@ import (
 	"github.com/rechedev9/recon-cli/internal/scanner"
 )
 
-func FormatJSON(report *scanner.Report) ([]byte, error) {
-	data, err := json.MarshalIndent(report, "", "  ")
+func FormatJSON(v any) ([]byte, error) {
+	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("marshal json: %w", err)
 	}
