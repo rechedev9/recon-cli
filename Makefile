@@ -4,8 +4,9 @@ LDFLAGS  := -s -w -X $(MODULE)/internal/cli.version=$(VERSION)
 
 LDFLAGS_FC := -s -w -X $(MODULE)/internal/filechunkcli.version=$(VERSION)
 LDFLAGS_DG := -s -w -X $(MODULE)/internal/depgraphcli.version=$(VERSION)
+LDFLAGS_TS := -s -w -X $(MODULE)/internal/teststatcli.version=$(VERSION)
 
-.PHONY: fmt lint test check build build-filechunk build-depgraph build-all install install-filechunk install-depgraph install-all
+.PHONY: fmt lint test check build build-filechunk build-depgraph build-teststat build-all install install-filechunk install-depgraph install-teststat install-all
 
 fmt:
 	gofumpt -w .
@@ -30,7 +31,10 @@ build-filechunk:
 build-depgraph:
 	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS_DG)" -o bin/depgraph ./cmd/depgraph
 
-build-all: build build-filechunk build-depgraph
+build-teststat:
+	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS_TS)" -o bin/teststat ./cmd/teststat
+
+build-all: build build-filechunk build-depgraph build-teststat
 
 install-filechunk: build-filechunk
 	cp bin/filechunk ~/.local/bin/filechunk
@@ -38,4 +42,7 @@ install-filechunk: build-filechunk
 install-depgraph: build-depgraph
 	cp bin/depgraph ~/.local/bin/depgraph
 
-install-all: install install-filechunk install-depgraph
+install-teststat: build-teststat
+	cp bin/teststat ~/.local/bin/teststat
+
+install-all: install install-filechunk install-depgraph install-teststat
