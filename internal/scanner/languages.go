@@ -28,9 +28,15 @@ var extToLang = map[string]string{
 	".toml": "TOML",
 }
 
-type langScanner struct{}
+type langScanner struct {
+	ignore IgnoreChecker
+}
 
 func (s *langScanner) Scan(ctx context.Context, root string) (*LangReport, error) {
+	ignore := s.ignore
+	if ignore == nil {
+		ignore = &fallbackIgnoreChecker{}
+	}
 	counts := make(map[string]*LangEntry)
 
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
@@ -40,10 +46,15 @@ func (s *langScanner) Scan(ctx context.Context, root string) (*LangReport, error
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if d.IsDir() && shouldSkipDir(d.Name()) && path != root {
+		if d.IsDir() && ignore.ShouldIgnoreDir(d.Name()) && path != root {
 			return filepath.SkipDir
 		}
 		if d.IsDir() {
+			return nil
+		}
+
+		rel, _ := filepath.Rel(root, path)
+		if ignore.ShouldIgnore(rel) {
 			return nil
 		}
 

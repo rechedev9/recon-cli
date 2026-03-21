@@ -9,9 +9,15 @@ import (
 	"strings"
 )
 
-type entryPointScanner struct{}
+type entryPointScanner struct {
+	ignore IgnoreChecker
+}
 
 func (s *entryPointScanner) Scan(ctx context.Context, root string) ([]EntryPoint, error) {
+	ignore := s.ignore
+	if ignore == nil {
+		ignore = &fallbackIgnoreChecker{}
+	}
 	var points []EntryPoint
 
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
@@ -21,7 +27,7 @@ func (s *entryPointScanner) Scan(ctx context.Context, root string) ([]EntryPoint
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if d.IsDir() && shouldSkipDir(d.Name()) && path != root {
+		if d.IsDir() && ignore.ShouldIgnoreDir(d.Name()) && path != root {
 			return filepath.SkipDir
 		}
 		if d.IsDir() {
@@ -29,6 +35,9 @@ func (s *entryPointScanner) Scan(ctx context.Context, root string) ([]EntryPoint
 		}
 
 		rel, _ := filepath.Rel(root, path)
+		if ignore.ShouldIgnore(rel) {
+			return nil
+		}
 		name := d.Name()
 
 		switch {

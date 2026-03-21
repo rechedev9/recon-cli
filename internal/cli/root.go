@@ -44,7 +44,7 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 			timeoutCtx, cancel := context.WithTimeout(cmd.Context(), time.Duration(opts.timeout)*time.Second)
 			defer cancel()
 
-			s := scanner.NewDefault()
+			s := scanner.NewDefault(timeoutCtx, absPath)
 			if opts.noGit {
 				s.Git = nil
 			}

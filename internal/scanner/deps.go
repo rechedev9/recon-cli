@@ -21,9 +21,15 @@ var knownManifests = map[string]bool{
 	"pyproject.toml":   true,
 }
 
-type depsScanner struct{}
+type depsScanner struct {
+	ignore IgnoreChecker
+}
 
 func (s *depsScanner) Scan(ctx context.Context, root string) (*DepsReport, error) {
+	ignore := s.ignore
+	if ignore == nil {
+		ignore = &fallbackIgnoreChecker{}
+	}
 	report := &DepsReport{}
 
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
@@ -33,7 +39,7 @@ func (s *depsScanner) Scan(ctx context.Context, root string) (*DepsReport, error
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if d.IsDir() && shouldSkipDir(d.Name()) && path != root {
+		if d.IsDir() && ignore.ShouldIgnoreDir(d.Name()) && path != root {
 			return filepath.SkipDir
 		}
 		if d.IsDir() {
@@ -46,6 +52,9 @@ func (s *depsScanner) Scan(ctx context.Context, root string) (*DepsReport, error
 		}
 
 		rel, _ := filepath.Rel(root, path)
+		if ignore.ShouldIgnore(rel) {
+			return nil
+		}
 
 		var deps []DepEntry
 		var parseErr error

@@ -116,13 +116,14 @@ func (s *Scanner) Run(ctx context.Context, root string, depth int) (*Report, err
 	return report, nil
 }
 
-func NewDefault() *Scanner {
+func NewDefault(ctx context.Context, root string) *Scanner {
+	ignore := NewIgnoreChecker(ctx, root)
 	return &Scanner{
-		Tree:        &treeScanner{},
-		Lang:        &langScanner{},
-		EntryPoints: &entryPointScanner{},
+		Tree:        &treeScanner{ignore: ignore},
+		Lang:        &langScanner{ignore: ignore},
+		EntryPoints: &entryPointScanner{ignore: ignore},
 		Git:         &gitScanner{},
-		Deps:        &depsScanner{},
+		Deps:        &depsScanner{ignore: ignore},
 		Docs:        &docsScanner{},
 	}
 }
