@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/rechedev9/CLIClaudeCode/internal/cli"
+	"github.com/rechedev9/recon-cli/internal/cli"
 )
 
 func main() {

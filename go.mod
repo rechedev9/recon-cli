@@ -1,4 +1,4 @@
-module github.com/rechedev9/CLIClaudeCode
+module github.com/rechedev9/recon-cli
 
 go 1.24.1
 

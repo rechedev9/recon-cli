@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/rechedev9/CLIClaudeCode/internal/scanner"
+	"github.com/rechedev9/recon-cli/internal/scanner"
 )
 
 func FormatJSON(report *scanner.Report) ([]byte, error) {

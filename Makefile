@@ -1,4 +1,4 @@
-MODULE   := github.com/rechedev9/CLIClaudeCode
+MODULE   := github.com/rechedev9/recon-cli
 VERSION  := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS  := -s -w -X $(MODULE)/internal/cli.version=$(VERSION)
 

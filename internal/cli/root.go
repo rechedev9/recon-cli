@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/rechedev9/CLIClaudeCode/internal/output"
-	"github.com/rechedev9/CLIClaudeCode/internal/scanner"
+	"github.com/rechedev9/recon-cli/internal/output"
+	"github.com/rechedev9/recon-cli/internal/scanner"
 	"github.com/spf13/cobra"
 )
 
