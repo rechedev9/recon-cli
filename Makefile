@@ -3,8 +3,9 @@ VERSION  := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev
 LDFLAGS  := -s -w -X $(MODULE)/internal/cli.version=$(VERSION)
 
 LDFLAGS_FC := -s -w -X $(MODULE)/internal/filechunkcli.version=$(VERSION)
+LDFLAGS_DG := -s -w -X $(MODULE)/internal/depgraphcli.version=$(VERSION)
 
-.PHONY: fmt lint test check build build-filechunk build-all install install-filechunk install-all
+.PHONY: fmt lint test check build build-filechunk build-depgraph build-all install install-filechunk install-depgraph install-all
 
 fmt:
 	gofumpt -w .
@@ -26,9 +27,15 @@ install: build
 build-filechunk:
 	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS_FC)" -o bin/filechunk ./cmd/filechunk
 
-build-all: build build-filechunk
+build-depgraph:
+	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS_DG)" -o bin/depgraph ./cmd/depgraph
+
+build-all: build build-filechunk build-depgraph
 
 install-filechunk: build-filechunk
 	cp bin/filechunk ~/.local/bin/filechunk
 
-install-all: install install-filechunk
+install-depgraph: build-depgraph
+	cp bin/depgraph ~/.local/bin/depgraph
+
+install-all: install install-filechunk install-depgraph
