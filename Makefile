@@ -6,7 +6,7 @@ LDFLAGS_FC := -s -w -X $(MODULE)/internal/filechunkcli.version=$(VERSION)
 LDFLAGS_DG := -s -w -X $(MODULE)/internal/depgraphcli.version=$(VERSION)
 LDFLAGS_TS := -s -w -X $(MODULE)/internal/teststatcli.version=$(VERSION)
 
-.PHONY: fmt lint test check build build-filechunk build-depgraph build-teststat build-all install install-filechunk install-depgraph install-teststat install-all
+.PHONY: fmt lint test check build build-filechunk build-depgraph build-teststat build-all install install-filechunk install-depgraph install-teststat install-all fuzz-quick
 
 fmt:
 	gofumpt -w .
@@ -46,3 +46,22 @@ install-teststat: build-teststat
 	cp bin/teststat ~/.local/bin/teststat
 
 install-all: install install-filechunk install-depgraph install-teststat
+
+fuzz-quick:
+	@echo "Fuzzing parsers (5s each)..."
+	@go test ./internal/scanner -fuzz=FuzzParseGoMod -fuzztime=5s -run=^$$ 2>&1 | tail -1
+	@go test ./internal/scanner -fuzz=FuzzParsePackageJSON -fuzztime=5s -run=^$$ 2>&1 | tail -1
+	@go test ./internal/scanner -fuzz=FuzzParseRequirementsTxt -fuzztime=5s -run=^$$ 2>&1 | tail -1
+	@go test ./internal/scanner -fuzz=FuzzParseCargoToml -fuzztime=5s -run=^$$ 2>&1 | tail -1
+	@go test ./internal/scanner -fuzz=FuzzParsePyprojectToml -fuzztime=5s -run=^$$ 2>&1 | tail -1
+	@go test ./internal/scanner -fuzz=FuzzParsePEP508 -fuzztime=5s -run=^$$ 2>&1 | tail -1
+	@go test ./internal/scanner -fuzz=FuzzParseGitLog -fuzztime=5s -run=^$$ 2>&1 | tail -1
+	@go test ./internal/chunker -fuzz=FuzzGoParser -fuzztime=5s -run=^$$ 2>&1 | tail -1
+	@go test ./internal/chunker -fuzz=FuzzTSParser -fuzztime=5s -run=^$$ 2>&1 | tail -1
+	@go test ./internal/chunker -fuzz=FuzzPythonParser -fuzztime=5s -run=^$$ 2>&1 | tail -1
+	@go test ./internal/chunker -fuzz=FuzzRustParser -fuzztime=5s -run=^$$ 2>&1 | tail -1
+	@go test ./internal/teststat -fuzz=FuzzParseGoTestJSON -fuzztime=5s -run=^$$ 2>&1 | tail -1
+	@go test ./internal/teststat -fuzz=FuzzParseJestJSON -fuzztime=5s -run=^$$ 2>&1 | tail -1
+	@go test ./internal/teststat -fuzz=FuzzParsePytestOutput -fuzztime=5s -run=^$$ 2>&1 | tail -1
+	@go test ./internal/depgraph -fuzz=FuzzParseGoModGraphOutput -fuzztime=5s -run=^$$ 2>&1 | tail -1
+	@echo "Fuzz complete."

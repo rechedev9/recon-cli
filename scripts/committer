@@ -82,6 +82,30 @@ for file in "${files[@]}"; do
   fi
 done
 
+# Fuzz gate: run quick fuzz tests when Go source files are being committed
+has_go_files=false
+for file in "${files[@]}"; do
+  case "$file" in
+    *.go)
+      # Skip test files — only fuzz when source changes
+      case "$file" in
+        *_test.go) ;;
+        *) has_go_files=true; break ;;
+      esac
+      ;;
+  esac
+done
+
+if [ "$has_go_files" = true ] && command -v make >/dev/null 2>&1 && [ -f Makefile ]; then
+  if grep -q '^fuzz-quick:' Makefile 2>/dev/null; then
+    printf 'Running fuzz gate...\n' >&2
+    if ! make fuzz-quick 2>&1 >&2; then
+      printf 'Error: fuzz tests found a panic. Fix before committing.\n' >&2
+      exit 1
+    fi
+  fi
+fi
+
 # Reset staging area, add only our files
 "$GIT_BIN" restore --staged :/ 2>/dev/null || true
 "$GIT_BIN" add -A -- "${files[@]}"
