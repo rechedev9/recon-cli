@@ -2,6 +2,7 @@ package scanner
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -71,4 +72,24 @@ func TestScannerRunSkipSections(t *testing.T) {
 	assert.Nil(t, report.Git)
 	assert.Nil(t, report.Dependencies)
 	assert.Nil(t, report.Docs)
+}
+
+func TestScannerRunConcurrentError(t *testing.T) {
+	errFake := &fakeTreeErr{}
+	s := &Scanner{
+		Tree:        errFake,
+		Lang:        &fakeLang{report: &LangReport{TotalFiles: 5}},
+		EntryPoints: &fakeEntryPoints{points: nil},
+		Git:         &fakeGit{report: &GitReport{Branch: "main"}},
+	}
+
+	_, err := s.Run(context.Background(), "/tmp/test", 4)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "tree scan")
+}
+
+type fakeTreeErr struct{}
+
+func (f *fakeTreeErr) Scan(_ context.Context, _ string, _ int) (*TreeReport, error) {
+	return nil, fmt.Errorf("fake tree error")
 }
