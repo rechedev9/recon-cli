@@ -1,0 +1,74 @@
+name: Fuzz
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: "0 3 * * *" # nightly at 3am UTC
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Scanner parsers
+          - pkg: ./internal/scanner
+            func: FuzzParseGoMod
+          - pkg: ./internal/scanner
+            func: FuzzParsePackageJSON
+          - pkg: ./internal/scanner
+            func: FuzzParseRequirementsTxt
+          - pkg: ./internal/scanner
+            func: FuzzParseCargoToml
+          - pkg: ./internal/scanner
+            func: FuzzParsePyprojectToml
+          - pkg: ./internal/scanner
+            func: FuzzParsePEP508
+          - pkg: ./internal/scanner
+            func: FuzzParseGitLog
+          # Chunker parsers
+          - pkg: ./internal/chunker
+            func: FuzzGoParser
+          - pkg: ./internal/chunker
+            func: FuzzTSParser
+          - pkg: ./internal/chunker
+            func: FuzzPythonParser
+          - pkg: ./internal/chunker
+            func: FuzzRustParser
+          # Teststat parsers
+          - pkg: ./internal/teststat
+            func: FuzzParseGoTestJSON
+          - pkg: ./internal/teststat
+            func: FuzzParseJestJSON
+          - pkg: ./internal/teststat
+            func: FuzzParsePytestOutput
+          # Depgraph parser
+          - pkg: ./internal/depgraph
+            func: FuzzParseGoModGraphOutput
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Fuzz
+        run: |
+          FUZZ_TIME="30s"
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            FUZZ_TIME="5m"
+          fi
+          go test ${{ matrix.pkg }} -fuzz=${{ matrix.func }} -fuzztime=$FUZZ_TIME -run=^$
+
+      - name: Upload crash corpus
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-corpus-${{ matrix.func }}
+          path: "**/testdata/fuzz/**"
+          retention-days: 30

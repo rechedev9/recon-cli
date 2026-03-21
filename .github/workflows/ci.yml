@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build all
+        run: |
+          CGO_ENABLED=0 go build ./cmd/recon
+          CGO_ENABLED=0 go build ./cmd/filechunk
+          CGO_ENABLED=0 go build ./cmd/depgraph
+          CGO_ENABLED=0 go build ./cmd/teststat
+
+      - name: Test with race detector
+        run: go test -race -count=1 ./...
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.11
