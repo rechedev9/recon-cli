@@ -57,12 +57,13 @@ func (s *treeScanner) walk(ctx context.Context, base, dir string, currentDepth, 
 			report.TotalDirs++
 			node := TreeNode{Path: rel, IsDir: true}
 
-			children, err := s.walk(ctx, base, filepath.Join(dir, name), currentDepth+1, maxDepth, report)
+			subDir := filepath.Join(dir, name)
+			children, err := s.walk(ctx, base, subDir, currentDepth+1, maxDepth, report)
 			if err != nil {
 				return nil, err
 			}
 			node.Children = children
-			node.Files = countDirectFiles(filepath.Join(dir, name))
+			node.Files = countFilesInNodes(children)
 			nodes = append(nodes, node)
 		} else {
 			report.TotalFiles++
@@ -73,22 +74,14 @@ func (s *treeScanner) walk(ctx context.Context, base, dir string, currentDepth, 
 	return nodes, nil
 }
 
-func countDirectFiles(dir string) int {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return 0
-	}
+func countFilesInNodes(nodes []TreeNode) int {
 	count := 0
-	for _, e := range entries {
-		if !e.IsDir() && !shouldSkip(e.Name()) {
+	for _, n := range nodes {
+		if !n.IsDir {
 			count++
 		}
 	}
 	return count
-}
-
-func shouldSkip(name string) bool {
-	return shouldSkipDir(name)
 }
 
 func shouldSkipDir(name string) bool {
@@ -99,8 +92,4 @@ func shouldSkipDir(name string) bool {
 		return true
 	}
 	return false
-}
-
-func isHiddenFile(name string) bool {
-	return strings.HasPrefix(name, ".") && name != "." && name != ".."
 }

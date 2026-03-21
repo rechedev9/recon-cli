@@ -11,10 +11,10 @@ import (
 	"strings"
 )
 
-var manifestNames = map[string]string{
-	"go.mod":           "go.mod",
-	"package.json":     "package.json",
-	"requirements.txt": "requirements.txt",
+var knownManifests = map[string]bool{
+	"go.mod":           true,
+	"package.json":     true,
+	"requirements.txt": true,
 }
 
 type depsScanner struct{}
@@ -29,15 +29,15 @@ func (s *depsScanner) Scan(ctx context.Context, root string) (*DepsReport, error
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if d.IsDir() && shouldSkip(d.Name()) && path != root {
+		if d.IsDir() && shouldSkipDir(d.Name()) && path != root {
 			return filepath.SkipDir
 		}
 		if d.IsDir() {
 			return nil
 		}
 
-		manager, ok := manifestNames[d.Name()]
-		if !ok {
+		name := d.Name()
+		if !knownManifests[name] {
 			return nil
 		}
 
@@ -46,7 +46,7 @@ func (s *depsScanner) Scan(ctx context.Context, root string) (*DepsReport, error
 		var deps []DepEntry
 		var parseErr error
 
-		switch manager {
+		switch name {
 		case "go.mod":
 			deps, parseErr = parseGoMod(path)
 		case "package.json":
@@ -60,7 +60,7 @@ func (s *depsScanner) Scan(ctx context.Context, root string) (*DepsReport, error
 		}
 
 		report.Manifests = append(report.Manifests, ManifestReport{
-			Manager: manager,
+			Manager: name,
 			Path:    rel,
 			Deps:    deps,
 		})

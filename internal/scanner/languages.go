@@ -40,7 +40,7 @@ func (s *langScanner) Scan(ctx context.Context, root string) (*LangReport, error
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if d.IsDir() && shouldSkip(d.Name()) && path != root {
+		if d.IsDir() && shouldSkipDir(d.Name()) && path != root {
 			return filepath.SkipDir
 		}
 		if d.IsDir() {

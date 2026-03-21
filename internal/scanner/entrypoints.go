@@ -21,7 +21,7 @@ func (s *entryPointScanner) Scan(ctx context.Context, root string) ([]EntryPoint
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if d.IsDir() && shouldSkip(d.Name()) && path != root {
+		if d.IsDir() && shouldSkipDir(d.Name()) && path != root {
 			return filepath.SkipDir
 		}
 		if d.IsDir() {
@@ -45,7 +45,7 @@ func (s *entryPointScanner) Scan(ctx context.Context, root string) ([]EntryPoint
 		case name == "package.json" && hasScriptsOrMain(path):
 			points = append(points, EntryPoint{Type: "package.json", Path: rel})
 		case name == "setup.py":
-			points = append(points, EntryPoint{Type: "pyproject", Path: rel})
+			points = append(points, EntryPoint{Type: "setup.py", Path: rel})
 		case name == "pyproject.toml":
 			points = append(points, EntryPoint{Type: "pyproject", Path: rel})
 		case filepath.Dir(rel) == "scripts" && isExecutable(path):
@@ -75,6 +75,9 @@ func isGoMain(path string) bool {
 		}
 		if strings.HasPrefix(line, "func main()") {
 			hasFuncMain = true
+		}
+		if hasPackageMain && hasFuncMain {
+			break
 		}
 	}
 	return hasPackageMain && hasFuncMain
