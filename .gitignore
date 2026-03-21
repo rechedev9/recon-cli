@@ -1,2 +1,23 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build output
 bin/
+dist/
+
+# Profiling
 *.prof
+
+# Temp
+*.log
+
+# Claude Code
+CLAUDE.md
+**/CLAUDE.md
