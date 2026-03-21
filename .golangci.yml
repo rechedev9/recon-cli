@@ -1,6 +1,30 @@
+version: "2"
+
+run:
+  timeout: 3m
+
 linters:
   enable:
-    - errcheck
+    - noctx
+    - tparallel
     - govet
+    - errcheck
     - staticcheck
     - unused
+    - ineffassign
+  settings:
+    errcheck:
+      exclude-functions:
+        - (hash.Hash).Write
+        - (io.Writer).Write
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - (*os.File).Close
+        - os.Remove
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+          - noctx
