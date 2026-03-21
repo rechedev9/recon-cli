@@ -3,6 +3,7 @@ module github.com/rechedev9/recon-cli
 go 1.25.0
 
 require (
+	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/sync v0.20.0

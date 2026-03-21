@@ -62,6 +62,67 @@ func TestDepsScanRequirementsTxt(t *testing.T) {
 	assert.Equal(t, "2.3.0", m.Deps[0].Version)
 }
 
+func TestDepsScanCargoToml(t *testing.T) {
+	root := t.TempDir()
+
+	cargo := `[package]
+name = "myapp"
+version = "0.1.0"
+
+[dependencies]
+serde = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+
+[dev-dependencies]
+criterion = "0.5"
+`
+	require.NoError(t, os.WriteFile(filepath.Join(root, "Cargo.toml"), []byte(cargo), 0o644))
+
+	ds := &depsScanner{}
+	report, err := ds.Scan(context.Background(), root)
+	require.NoError(t, err)
+
+	require.Len(t, report.Manifests, 1)
+	m := report.Manifests[0]
+	assert.Equal(t, "Cargo.toml", m.Manager)
+	assert.Len(t, m.Deps, 3) // serde, tokio, criterion
+}
+
+func TestDepsScanPyprojectToml(t *testing.T) {
+	root := t.TempDir()
+
+	pyproj := `[project]
+name = "myapp"
+version = "1.0.0"
+dependencies = [
+    "flask>=2.3.0",
+    "requests==2.31.0",
+    "numpy",
+    "pandas~=2.0",
+]
+`
+	require.NoError(t, os.WriteFile(filepath.Join(root, "pyproject.toml"), []byte(pyproj), 0o644))
+
+	ds := &depsScanner{}
+	report, err := ds.Scan(context.Background(), root)
+	require.NoError(t, err)
+
+	require.Len(t, report.Manifests, 1)
+	m := report.Manifests[0]
+	assert.Equal(t, "pyproject.toml", m.Manager)
+	assert.Len(t, m.Deps, 4)
+
+	// Check specific parsing
+	depMap := make(map[string]string)
+	for _, d := range m.Deps {
+		depMap[d.Name] = d.Version
+	}
+	assert.Equal(t, ">=2.3.0", depMap["flask"])
+	assert.Equal(t, "==2.31.0", depMap["requests"])
+	assert.Equal(t, "", depMap["numpy"]) // no version constraint
+	assert.Equal(t, "~=2.0", depMap["pandas"])
+}
+
 func TestDepsScanMultipleManifests(t *testing.T) {
 	root := t.TempDir()
 

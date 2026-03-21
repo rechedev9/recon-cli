@@ -9,12 +9,16 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	toml "github.com/pelletier/go-toml/v2"
 )
 
 var knownManifests = map[string]bool{
 	"go.mod":           true,
 	"package.json":     true,
 	"requirements.txt": true,
+	"Cargo.toml":       true,
+	"pyproject.toml":   true,
 }
 
 type depsScanner struct{}
@@ -53,6 +57,10 @@ func (s *depsScanner) Scan(ctx context.Context, root string) (*DepsReport, error
 			deps, parseErr = parsePackageJSON(path)
 		case "requirements.txt":
 			deps, parseErr = parseRequirementsTxt(path)
+		case "Cargo.toml":
+			deps, parseErr = parseCargoToml(path)
+		case "pyproject.toml":
+			deps, parseErr = parsePyprojectToml(path)
 		}
 
 		if parseErr != nil {
@@ -160,4 +168,80 @@ func parseRequirementsTxt(path string) ([]DepEntry, error) {
 		}
 	}
 	return deps, sc.Err()
+}
+
+func parseCargoToml(path string) ([]DepEntry, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read Cargo.toml: %w", err)
+	}
+
+	var cargo struct {
+		Dependencies    map[string]any `toml:"dependencies"`
+		DevDependencies map[string]any `toml:"dev-dependencies"`
+	}
+	if err := toml.Unmarshal(data, &cargo); err != nil {
+		return nil, fmt.Errorf("parse Cargo.toml: %w", err)
+	}
+
+	var deps []DepEntry
+	for name, val := range cargo.Dependencies {
+		deps = append(deps, DepEntry{Name: name, Version: cargoVersion(val)})
+	}
+	for name, val := range cargo.DevDependencies {
+		deps = append(deps, DepEntry{Name: name, Version: cargoVersion(val)})
+	}
+	sort.Slice(deps, func(i, j int) bool {
+		return deps[i].Name < deps[j].Name
+	})
+	return deps, nil
+}
+
+func cargoVersion(val any) string {
+	switch v := val.(type) {
+	case string:
+		return v
+	case map[string]any:
+		if ver, ok := v["version"]; ok {
+			if s, ok := ver.(string); ok {
+				return s
+			}
+		}
+	}
+	return ""
+}
+
+func parsePyprojectToml(path string) ([]DepEntry, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read pyproject.toml: %w", err)
+	}
+
+	var pyproj struct {
+		Project struct {
+			Dependencies []string `toml:"dependencies"`
+		} `toml:"project"`
+	}
+	if err := toml.Unmarshal(data, &pyproj); err != nil {
+		return nil, fmt.Errorf("parse pyproject.toml: %w", err)
+	}
+
+	var deps []DepEntry
+	for _, dep := range pyproj.Project.Dependencies {
+		name, version := parsePEP508(dep)
+		deps = append(deps, DepEntry{Name: name, Version: version})
+	}
+	return deps, nil
+}
+
+func parsePEP508(spec string) (string, string) {
+	// PEP 508: "name>=version", "name==version", "name~=version", "name<version", "name!=version", "name"
+	spec = strings.TrimSpace(spec)
+	// Try splitting on version operators in order of length
+	for _, op := range []string{"~=", ">=", "<=", "!=", "==", ">", "<"} {
+		if idx := strings.Index(spec, op); idx > 0 {
+			return strings.TrimSpace(spec[:idx]), op + strings.TrimSpace(spec[idx+len(op):])
+		}
+	}
+	return spec, "" // no version constraint
 }
