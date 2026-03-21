@@ -25,7 +25,7 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	opts := &options{}
 
 	root := &cobra.Command{
-		Use:           "codestat [path]",
+		Use:           "recon [path]",
 		Short:         "Project structure summarizer",
 		Version:       version,
 		Args:          cobra.MaximumNArgs(1),

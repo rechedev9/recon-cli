@@ -3,7 +3,7 @@ builds:
   - env: [CGO_ENABLED=0]
     goos: [linux, darwin, windows]
     goarch: [amd64, arm64]
-    main: ./cmd/codestat
+    main: ./cmd/recon
     ldflags: -s -w -X github.com/rechedev9/CLIClaudeCode/internal/cli.version={{ .Version }}
 
 archives:

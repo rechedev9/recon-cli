@@ -16,7 +16,7 @@ test:
 check: fmt lint test
 
 build:
-	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/codestat ./cmd/codestat
+	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/recon ./cmd/recon
 
 install: build
-	cp bin/codestat ~/.local/bin/codestat
+	cp bin/recon ~/.local/bin/recon
