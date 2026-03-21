@@ -34,7 +34,14 @@ func (s *gitScanner) Scan(ctx context.Context, root string) (*GitReport, error) 
 	if err != nil {
 		return nil, fmt.Errorf("git log: %w", err)
 	}
-	for _, line := range strings.Split(strings.TrimSpace(log), "\n") {
+	report.LastCommits = parseGitLogOutput(log)
+
+	return report, nil
+}
+
+func parseGitLogOutput(output string) []CommitInfo {
+	var commits []CommitInfo
+	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
 		if line == "" {
 			continue
 		}
@@ -42,14 +49,13 @@ func (s *gitScanner) Scan(ctx context.Context, root string) (*GitReport, error) 
 		if len(parts) != 3 {
 			continue
 		}
-		report.LastCommits = append(report.LastCommits, CommitInfo{
+		commits = append(commits, CommitInfo{
 			Hash:    parts[0],
 			Subject: parts[1],
 			Date:    parts[2],
 		})
 	}
-
-	return report, nil
+	return commits
 }
 
 func (s *gitScanner) git(ctx context.Context, dir string, args ...string) (string, error) {
