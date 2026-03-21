@@ -57,14 +57,14 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 
 			report, err := s.Run(timeoutCtx, absPath, opts.depth)
 			if err != nil {
-				return err
+				return fmt.Errorf("scan %s: %w", absPath, err)
 			}
 
 			switch opts.format {
 			case "json":
 				data, err := output.FormatJSON(report)
 				if err != nil {
-					return err
+					return fmt.Errorf("format json: %w", err)
 				}
 				fmt.Fprintln(stdout, string(data))
 			case "md":
