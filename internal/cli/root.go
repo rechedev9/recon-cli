@@ -2,11 +2,12 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"path/filepath"
+	"time"
 
+	"github.com/rechedev9/CLIClaudeCode/internal/output"
 	"github.com/rechedev9/CLIClaudeCode/internal/scanner"
 	"github.com/spf13/cobra"
 )
@@ -24,10 +25,10 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	opts := &options{}
 
 	root := &cobra.Command{
-		Use:     "codestat [path]",
-		Short:   "Project structure summarizer",
-		Version: version,
-		Args:    cobra.MaximumNArgs(1),
+		Use:           "codestat [path]",
+		Short:         "Project structure summarizer",
+		Version:       version,
+		Args:          cobra.MaximumNArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -40,13 +41,38 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 				return fmt.Errorf("resolve path: %w", err)
 			}
 
-			report := &scanner.Report{Path: absPath}
+			timeoutCtx, cancel := context.WithTimeout(cmd.Context(), time.Duration(opts.timeout)*time.Second)
+			defer cancel()
 
-			data, err := json.MarshalIndent(report, "", "  ")
-			if err != nil {
-				return fmt.Errorf("marshal report: %w", err)
+			s := scanner.NewDefault()
+			if opts.noGit {
+				s.Git = nil
 			}
-			fmt.Fprintln(stdout, string(data))
+			if opts.noDeps {
+				s.Deps = nil
+			}
+			if opts.noDocs {
+				s.Docs = nil
+			}
+
+			report, err := s.Run(timeoutCtx, absPath, opts.depth)
+			if err != nil {
+				return err
+			}
+
+			switch opts.format {
+			case "json":
+				data, err := output.FormatJSON(report)
+				if err != nil {
+					return err
+				}
+				fmt.Fprintln(stdout, string(data))
+			case "md":
+				fmt.Fprint(stdout, output.FormatMarkdown(report))
+			default:
+				return &UsageError{Msg: fmt.Sprintf("unknown format %q (use json or md)", opts.format)}
+			}
+
 			return nil
 		},
 	}
